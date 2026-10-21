@@ -209,7 +209,7 @@ const server = serve({
                     if (!rooms[roomName]) {
                         rooms[roomName] = {
                             id: roomName,
-                            ownerId: socketId, // Создатель становится владельцем
+                            ownerId: socketId,
                             visible: isVisible,
                             chatEnabled: true,
                             onlyOwnerCanPlay: false,
@@ -219,7 +219,7 @@ const server = serve({
                         broadcastRoomsList();
                         ws.send(JSON.stringify({ type: "roomCreated", roomName }));
                     } else {
-                        ws.send(JSON.stringify({ type: "roomError", error: 'Комната с таким названием уже существует' }));
+                        ws.send(JSON.stringify({ type: "roomError", error: 'ROOM_EXISTS' }));
                     }
                     break;
                 }
@@ -236,7 +236,7 @@ const server = serve({
                     };
                     activeReports.push(report);
                     notifyOwnerNewReport(report);
-                    ws.send(JSON.stringify({ type: "systemMessage", text: "Жалоба отправлена OWNER'у." }));
+                    ws.send(JSON.stringify({ type: "systemMessage", text: "REPORT_SENT" }));
                     break;
                 }
 
@@ -321,7 +321,7 @@ const server = serve({
 
                         const now = Date.now();
                         if (now - ws.data.lastMessageTime < 2000) {
-                            ws.send(JSON.stringify({ type: "systemMessage", text: "Не так быстро! Подожди 2 секунды." }));
+                            ws.send(JSON.stringify({ type: "systemMessage", text: "RATE_LIMIT" }));
                             return;
                         }
                         ws.data.lastMessageTime = now;
