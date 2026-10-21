@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MppHaunted:D</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: #05010a; color: #fff; font-family: Arial, sans-serif;
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none;
+            -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none;
+            -moz-user-select: none; -ms-user-select: none; touch-action: pan-x; 
+        }
+
+        @media (max-width: 768px) {
+            #players-box { width: 140px; padding: 5px; top: 10px; right: 10px; }
+            #players-box h4 { font-size: 10px; }
+            .player-item { font-size: 11px; padding: 2px; }
+            #chat-box { width: 100%; height: 150px; }
+            #left-panel { width: 100%; left: 0; bottom: 0; padding: 10px; background: rgba(5,1,10,0.9); }
+            .mpp-buttons-grid { grid-template-columns: repeat(3, 1fr); }
+            #right-bottom-panel { position: relative; bottom: auto; right: auto; margin: 10px auto; justify-content: center; }
+            .piano-wrapper { padding: 0; align-items: flex-end; padding-bottom: 160px; }
+            .modal-content { width: 95%; }
+            .key-white { width: 32px; height: 180px; }
+            .key-black { width: 22px; height: 110px; }
+        }
+
+        #intro-screen {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(5, 1, 10, 0.95); backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999; flex-direction: column; gap: 20px;
+        }
+        .intro-content {
+            background: #0a0a0f; border: 1px solid #7cc4ff; border-radius: 12px;
+            padding: 30px; width: 90%; max-width: 420px; display: flex; flex-direction: column; gap: 15px;
+            box-shadow: 0 0 40px rgba(124, 196, 255, 0.3); text-align: center;
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .intro-content h2 { color: #7cc4ff; text-shadow: 0 0 15px #7cc4ff; font-size: 28px; margin-bottom: 10px; }
+        .intro-content p { color: #ccc; font-size: 15px; line-height: 1.5; }
+        .fact-text { 
+            color: #ff3366; font-style: italic; font-weight: bold; font-size: 14px;
+            text-shadow: 0 0 10px #ff3366; padding: 15px 0; border-top: 1px solid #333; border-bottom: 1px solid #333;
+            min-height: 70px; display: flex; align-items: center; justify-content: center;
+        }
+        #enter-btn {
+            font-size: 18px; padding: 12px 30px; background: transparent; margin-top: 10px;
+            color: #33ff57; border: 2px solid #33ff57; border-radius: 8px;
+            cursor: pointer; text-shadow: 0 0 10px #33ff57;
+            box-shadow: 0 0 15px #33ff57, inset 0 0 15px #33ff57; transition: 0.3s; font-weight: bold;
+        }
+        #enter-btn:hover { background: #33ff57; color: #000; box-shadow: 0 0 30px #33ff57; }
+
+        #ban-screen {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: #05010a; z-index: 10000; display: none;
+            flex-direction: column; padding: 50px; font-family: monospace;
+            color: #ccc;
+        }
+        #ban-screen.active { display: flex; }
+        .ban-header { color: #ff3366; font-size: 24px; margin-bottom: 20px; font-weight: bold; display: flex; justify-content: space-between; }
+        .ban-header span { cursor: pointer; }
+        .ban-text { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
+        .ban-text strong { color: #fff; }
+        .ban-id { font-size: 14px; margin-top: 30px; color: #888; }
+
+        #toast-container {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; gap: 10px; z-index: 1000; pointer-events: none;
+        }
+        .toast {
+            background: rgba(10, 10, 15, 0.95); border: 1px solid #7cc4ff;
+            color: #fff; padding: 10px 20px; border-radius: 20px;
+            font-size: 14px; box-shadow: 0 0 15px #7cc4ff; animation: slideDown 0.3s ease-out;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .toast.restarting { border-color: #ff3366; box-shadow: 0 0 15px #ff3366; color: #ff3366; font-weight: bold; }
+        .toast.join { border-color: #33ff57; box-shadow: 0 0 15px #33ff57; }
+        .toast.leave { border-color: #ff5733; box-shadow: 0 0 15px #ff5733; }
+        .toast.system { border-color: #ffcc00; box-shadow: 0 0 15px #ffcc00; color: #ffcc00; }
+        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
+
+        #mute-banner {
+            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 51, 102, 0.9); border: 1px solid #ff3366;
+            color: #fff; padding: 10px 20px; border-radius: 8px;
+            font-weight: bold; display: none; z-index: 1000; text-align: center;
+            box-shadow: 0 0 20px #ff3366;
+        }
+        #mute-banner.active { display: block; }
+
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(5, 1, 10, 0.8); backdrop-filter: blur(5px);
+            display: none; align-items: center; justify-content: center; z-index: 500;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: #0a0a0f; border: 1px solid #7cc4ff; border-radius: 12px;
+            padding: 20px; width: 90%; max-width: 340px; display: flex; flex-direction: column; gap: 15px;
+            box-shadow: 0 0 30px rgba(124, 196, 255, 0.3); position: relative;
+            max-height: 80vh; overflow-y: auto;
+        }
+        .modal-content h3 { color: #7cc4ff; text-shadow: 0 0 10px #7cc4ff; text-align: center; margin-bottom: 5px; }
+        
+        .input-row { display: flex; flex-direction: column; gap: 5px; }
+        .input-row label { font-size: 12px; color: #aaa; }
+        .input-row input, .input-row select, .input-row textarea {
+            background: #111; border: 1px solid #333; color: #fff;
+            padding: 10px; border-radius: 6px; outline: none; font-size: 14px;
+            font-family: inherit; resize: none;
+        }
+        .input-row input:focus, .input-row select:focus, .input-row textarea:focus { border-color: #7cc4ff; box-shadow: 0 0 5px #7cc4ff; }
+
+        .color-row { display: flex; flex-direction: column; gap: 10px; margin-top: 5px; }
+        .color-preview-row { display: flex; align-items: center; justify-content: space-between; }
+        #current-color-btn { width: 36px; height: 36px; border-radius: 6px; cursor: default; border: 2px solid #fff; transition: box-shadow 0.2s; }
+
+        input[type=range].color-slider {
+            -webkit-appearance: none; width: 100%; height: 15px; border-radius: 8px;
+            background: linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+            outline: none; border: 1px solid #333; cursor: pointer;
+        }
+        input[type=range].color-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 25px; width: 25px; border-radius: 50%;
+            background: #fff; cursor: pointer; border: 3px solid #05010a; box-shadow: 0 0 10px #fff;
+        }
+
+        .modal-buttons { display: flex; gap: 10px; margin-top: 10px; }
+        .modal-buttons button { flex: 1; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; border: none; }
+        .btn-save { background: #7cc4ff; color: #000; }
+        .btn-save:hover { box-shadow: 0 0 15px #7cc4ff; }
+        .btn-close { background: #333; color: #fff; }
+        .btn-close:hover { background: #444; }
+        .btn-danger { background: #ff3366; color: #fff; }
+        .btn-danger:hover { box-shadow: 0 0 15px #ff3366; }
+
+        .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #7cc4ff; cursor: pointer; }
+        .checkbox-row label { font-size: 13px; color: #ccc; cursor: pointer; }
+
+        .room-select-container { position: relative; width: 100%; z-index: 100; }
+        .room-select-btn {
+            background: #1a1a24; color: #ccc; border: 1px solid #444;
+            padding: 10px; border-radius: 4px; cursor: pointer;
+            font-size: 14px; width: 100%; text-align: left;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .room-select-btn:hover { background: #2a2a3a; border-color: #7cc4ff; color: #fff; }
+        
+        .room-dropdown {
+            position: absolute; bottom: 100%; left: 0; right: 0; margin-bottom: 5px;
+            background: #111; border: 1px solid #7cc4ff; border-radius: 4px;
+            max-height: 200px; overflow-y: auto; display: none; z-index: 102;
+            box-shadow: 0 -5px 20px rgba(124, 196, 255, 0.3);
+        }
+        .room-dropdown.active { display: block; }
+        .room-option {
+            padding: 8px 10px; cursor: pointer; font-size: 13px;
+            border-bottom: 1px solid #222; display: flex; justify-content: space-between;
+        }
+        .room-option:last-child { border-bottom: none; }
+        .room-option:hover { background: #2a2a3a; }
+        .room-option.lobby { color: #ffcc00 !important; text-shadow: 0 0 10px #ffcc00; font-weight: bold; }
+        .room-option.active-room { border-left: 3px solid #7cc4ff; }
+        .room-count { color: #888; font-size: 11px; }
+
+        #players-box {
+            position: absolute; top: 20px; right: 20px; width: 240px;
+            background: rgba(10, 10, 15, 0.85); border: 1px solid #333;
+            border-radius: 8px; padding: 10px; z-index: 10;
+        }
+        #players-box h4 { color: #ff3366; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 5px; text-shadow: 0 0 5px #ff3366; }
+        #players-list { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+        .player-item { display: flex; align-items: center; gap: 8px; padding: 4px; justify-content: space-between; }
+        .player-name { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .player-item.me .player-name { cursor: pointer; }
+        .player-item:not(.me) .player-name { cursor: pointer; }
+        .player-item:not(.me) .player-name:hover { text-decoration: underline; }
+        .player-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+        .piano-wrapper {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            padding: 20px; background: linear-gradient(180deg, #05010a 0%, #1a0b2e 100%);
+            overflow-x: auto; overflow-y: hidden; pointer-events: none;
+            transition: background 0.5s;
+            -webkit-overflow-scrolling: touch; 
+        }
+        .piano {
+            display: flex; position: relative; background: #000; padding: 10px 10px 0 10px;
+            box-shadow: 0 0 30px rgba(124, 196, 255, 0.2); border-radius: 8px;
+            min-width: max-content; pointer-events: auto;
+        }
+        
+        .key-white {
+            width: 40px; height: 250px; background: #fdfdfd; border: 1px solid #ccc;
+            border-radius: 0 0 6px 6px; cursor: pointer; display: flex; align-items: flex-end;
+            justify-content: center; padding-bottom: 15px; font-size: 10px; color: #888;
+            transition: background 0.4s ease-out, box-shadow 0.4s ease-out, color 0.4s ease-out; 
+            z-index: 1;
+        }
+        .key-white:hover { background: #e0e0e0; }
+        .key-white.active { 
+            background: #a8e6ff; box-shadow: 0 0 15px #a8e6ff; color: #000;
+            transition: none; 
+        }
+        .key-black {
+            position: absolute; width: 26px; height: 150px; background: #111;
+            border: 1px solid #000; border-radius: 0 0 6px 6px;
+            cursor: pointer; z-index: 2; 
+            transition: background 0.4s ease-out, box-shadow 0.4s ease-out;
+        }
+        .key-black:hover { background: #222; }
+        .key-black.active { 
+            background: #a8e6ff; box-shadow: 0 0 15px #a8e6ff;
+            transition: none;
+        }
+
+        #left-panel {
+            position: absolute; bottom: 20px; left: 20px; 
+            display: flex; flex-direction: column; gap: 10px; z-index: 100;
+            pointer-events: auto;
+        }
+        #chat-box {
+            width: 320px; height: 220px;
+            background: rgba(10, 10, 15, 0.85); border: 1px solid #333;
+            border-radius: 8px; display: flex; flex-direction: column;
+            position: relative; z-index: 10;
+        }
+        #chat-messages { flex: 1; padding: 10px; overflow-y: auto; font-size: 14px; color: #ccc; display: flex; flex-direction: column; gap: 4px; }
+        .msg-name { font-weight: bold; }
+        #chat-input { background: #111; border: none; border-top: 1px solid #333; color: #fff; padding: 10px; outline: none; border-radius: 0 0 8px 8px; }
+        #chat-input:focus { background: #1a1a1a; }
+
+        .mpp-buttons-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; position: relative; z-index: 101; }
+        .mpp-btn {
+            background: #1a1a24; color: #ccc; border: 1px solid #444;
+            padding: 8px 4px; border-radius: 4px; cursor: pointer;
+            font-size: 11px; transition: 0.2s; text-align: center;
+        }
+        .mpp-btn:hover { background: #2a2a3a; border-color: #7cc4ff; color: #fff; }
+        .mpp-btn.active { border-color: #7cc4ff; color: #7cc4ff; box-shadow: 0 0 10px rgba(124, 196, 255, 0.3); }
+        
+        #room-settings-btn {
+            grid-column: span 3; display: none;
+            border-color: #ff3366; color: #ff3366; box-shadow: 0 0 10px rgba(255, 51, 102, 0.3);
+            margin-bottom: 5px;
+        }
+        #admin-controls {
+            grid-column: span 3; display: none;
+            flex-direction: column; gap: 5px;
+            border-top: 1px solid #333; padding-top: 5px; margin-top: 5px;
+        }
+        #admin-controls.active { display: flex; }
+        .admin-btn-wide {
+            background: #1a1a24; color: #c77dff; border: 1px solid #c77dff;
+            padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px;
+            box-shadow: 0 0 10px rgba(199, 125, 255, 0.3); transition: 0.2s;
+        }
+        .admin-btn-wide:hover { background: #c77dff; color: #000; box-shadow: 0 0 20px #c77dff; }
+
+        #right-bottom-panel {
+            position: absolute; bottom: 20px; right: 260px; 
+            display: flex; align-items: center; gap: 15px;
+            background: rgba(10, 10, 15, 0.85); border: 1px solid #333;
+            border-radius: 8px; padding: 10px 15px; z-index: 10;
+            pointer-events: auto;
+        }
+        .vol-display { display: flex; align-items: center; gap: 8px; color: #ff3366; font-weight: bold; font-size: 13px; text-shadow: 0 0 5px #ff3366; }
+        .vol-line { width: 80px; height: 6px; background: #333; border-radius: 3px; overflow: hidden; cursor: pointer; position: relative; }
+        .vol-fill { height: 100%; background: #ff3366; width: 80%; box-shadow: 0 0 10px #ff3366; pointer-events: none; }
+
+        .synth-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .synth-row label { font-size: 13px; color: #ccc; }
+        .synth-row input[type="range"] { width: 150px; }
+
+        .tag-owner { color: #c77dff; text-shadow: 0 0 10px #c77dff; font-size: 12px; font-weight: bold; margin-left: 4px; }
+        .tag-muted { color: #ff0000; font-size: 10px; margin-left: 4px; }
+        .tag-invisible { color: #888; font-size: 10px; margin-left: 4px; }
+        .tag-bot { color: #00e5ff; text-shadow: 0 0 10px #00e5ff; font-size: 11px; font-weight: bold; margin-left: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="ban-screen">
+        <div class="ban-header">
+            <span>Notice</span>
+            <span onclick="document.getElementById('ban-screen').classList.remove('active')">×</span>
+        </div>
+        <div class="ban-text" id="ban-text">
+            Your IP address is suspicious and has been blocked to prevent abuse.
+        </div>
+        <div class="ban-id">
+            Your ID: <span id="ban-my-id">unknown</span> 
+            <button style="background:#333; border:1px solid #555; color:#fff; padding:2px 8px; border-radius:4px; cursor:pointer;" onclick="navigator.clipboard.writeText(document.getElementById('ban-my-id').innerText)">Copy</button>
+        </div>
+    </div>
+
+    <div id="intro-screen">
+        <div class="intro-content">
+            <h2>MppHaunted:D</h2>
+            <p>Добро пожаловать в комнату!</p>
+            <div class="fact-text" id="fact-display">Загрузка факта...</div>
+            <button id="enter-btn">ВОЙТИ НА САЙТ</button>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+    <div id="mute-banner">You have to mute! (Причина: -) (Время: -)</div>
+
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-content">
+            <h3>Мой профиль</h3>
+            <div class="input-row">
+                <label>Ваш никнейм</label>
+                <input type="text" id="modal-name-input" placeholder="Введите свой ник" maxlength="50">
+            </div>
+            <div class="color-row">
+                <div class="color-preview-row">
+                    <label style="font-size: 14px; color: #ccc;">Цвет:</label>
+                    <div id="current-color-btn"></div>
+                </div>
+                <input type="range" id="hue-slider" class="color-slider" min="0" max="360" value="180">
+            </div>
+            <div class="checkbox-row" style="margin-top: 10px;">
+                <input type="checkbox" id="admin-toggle">
+                <label for="admin-toggle" style="color: #c77dff; text-shadow: 0 0 5px #c77dff;">Включить режим OWNER</label>
+            </div>
+            <div class="checkbox-row" id="bot-toggle-row" style="display: none;">
+                <input type="checkbox" id="bot-toggle">
+                <label for="bot-toggle" style="color: #00e5ff; text-shadow: 0 0 5px #00e5ff;">Режим бота</label>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-close" id="modal-close-btn">Отмена</button>
+                <button class="btn-save" id="modal-save-btn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="room-modal">
+        <div class="modal-content">
+            <h3>Новая комната</h3>
+            <div class="input-row">
+                <label>Название комнаты</label>
+                <input type="text" id="new-room-name" placeholder="room name" maxlength="20">
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="create-room-visible" checked>
+                <label for="create-room-visible">Открыта для всех</label>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-close" onclick="document.getElementById('room-modal').classList.remove('active')">Отмена</button>
+                <button class="btn-save" id="create-room-btn" style="background: #ffcc00; color: #000;">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="room-settings-modal">
+        <div class="modal-content">
+            <h3>Room Settings</h3>
+            <div class="checkbox-row">
+                <input type="checkbox" id="room-setting-visible">
+                <label for="room-setting-visible">Visible (open to everyone)</label>
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="room-setting-chat">
+                <label for="room-setting-chat">Enable Chat</label>
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="room-setting-owner-play">
+                <label for="room-setting-owner-play">Only Owner can Play</label>
+            </div>
+            <div class="input-row" style="margin-top: 5px;">
+                <label>Background color:</label>
+                <input type="color" id="room-setting-bg" style="width: 100%; height: 40px; cursor: pointer; background: #111; border: 1px solid #333; padding: 2px;">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-close" onclick="document.getElementById('room-settings-modal').classList.remove('active')">Отмена</button>
+                <button class="btn-save" id="apply-room-settings-btn" style="background: #ffcc00; color: #000;">APPLY</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="player-action-modal">
+        <div class="modal-content">
+            <h3 id="player-action-title">Действия</h3>
+            <button class="btn-save" id="act-mention">Mention (Упомянуть)</button>
+            <button class="btn-close" id="act-mute-chat">Mute Chat (Скрыть чат)</button>
+            <button class="btn-close" id="act-mute-notes">Mute Notes (Скрыть пианино)</button>
+            <button class="btn-close" id="act-mute-complete">Mute Completely (Скрыть всё)</button>
+            <button class="btn-close" id="act-report" style="color: #ffcc00; border-color: #ffcc00;">Пожаловаться (Report)</button>
+            <div class="modal-buttons">
+                <button class="btn-close" onclick="document.getElementById('player-action-modal').classList.remove('active')">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="admin-action-modal">
+        <div class="modal-content">
+            <h3 id="admin-action-title">Управление игроком</h3>
+            <div class="input-row">
+                <label>Причина</label>
+                <input type="text" id="admin-reason" placeholder="Например: Спам" value="Нарушение правил">
+            </div>
+            <div class="input-row">
+                <label>Время (в секундах)</label>
+                <input type="number" id="admin-duration" value="3600">
+            </div>
+            <div class="modal-buttons" style="flex-direction: column;">
+                <button class="btn-save" id="admin-btn-kick" style="background: #ffcc00; color: #000;">Кикнуть</button>
+                <button class="btn-danger" id="admin-btn-mute">Замутить</button>
+                <button class="btn-danger" id="admin-btn-ban">Забанить</button>
+                <button class="btn-close" onclick="document.getElementById('admin-action-modal').classList.remove('active')">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="instrument-modal">
+        <div class="modal-content">
+            <h3>Выбор инструмента</h3>
+            <select id="instrument-select" style="padding: 10px; border-radius: 6px; background: #111; color: #fff; border: 1px solid #333; outline: none; font-size: 15px;">
+                <option value="acoustic_grand_piano">Пианино (Grand Piano)</option>
+                <option value="electric_piano_1">Электро-пианино</option>
+                <option value="music_box">Музыкальная шкатулка</option>
+                <option value="violin">Скрипка</option>
+                <option value="flute">Флейта</option>
+                <option value="synth_choir">Синт-хор</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="btn-close" onclick="document.getElementById('instrument-modal').classList.remove('active')">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="synth-modal">
+        <div class="modal-content">
+            <h3>Синтезатор</h3>
+            <div class="synth-row">
+                <label>Форма волны</label>
+                <select id="synth-wave" style="background:#111; color:#fff; border:1px solid #333; padding:5px; border-radius:4px;">
+                    <option value="sine">Синус (Sine)</option>
+                    <option value="square">Квадрат (Square)</option>
+                    <option value="triangle">Треугольник (Triangle)</option>
+                    <option value="sawtooth">Пила (Sawtooth)</option>
+                </select>
+            </div>
+            <div class="synth-row">
+                <label>Атака (Attack)</label>
+                <input type="range" id="synth-attack" min="0" max="1" step="0.01" value="0.05">
+            </div>
+            <div class="synth-row">
+                <label>Затухание (Release)</label>
+                <input type="range" id="synth-release" min="0.1" max="3" step="0.1" value="1.5">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-close" onclick="document.getElementById('synth-modal').classList.remove('active')">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="midi-modal">
+        <div class="modal-content">
+            <h3>MIDI In/Out</h3>
+            <p style="color:#ccc; font-size:13px; text-align:center;">Подключите ваш MIDI-инструмент к компьютеру по USB.</p>
+            <div class="input-row">
+                <label>Выберите устройство</label>
+                <select id="midi-select">
+                    <option value="">-- Не выбрано --</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-close" onclick="document.getElementById('midi-modal').classList.remove('active')">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="players-box">
+        <h4>ОНЛАЙН</h4>
+        <div id="players-list"></div>
+    </div>
+
+    <div id="left-panel">
+        <div id="chat-box">
+            <div id="chat-messages"></div>
+            <input type="text" id="chat-input" placeholder="Нажми Enter..." maxlength="60">
+        </div>
+        <div class="mpp-buttons-grid">
+            
+            <div class="room-select-container">
+                <button class="room-select-btn" id="room-select-btn">
+                    <span id="current-room-label">📍 Lobby</span>
+                    <span>▼</span>
+                </button>
+                <div class="room-dropdown" id="room-dropdown"></div>
+            </div>
+
+            <button class="mpp-btn" id="room-settings-btn">Room Settings</button>
+            
+            <button class="mpp-btn" id="open-room-btn">Новая комната...</button>
+            <button class="mpp-btn">Играть одному</button>
+            <button class="mpp-btn active" id="open-instrument-btn">Инструмент</button>
+            
+            <button class="mpp-btn" id="open-midi-btn">MIDI In/Out</button>
+            <button class="mpp-btn" id="record-btn">Запись</button>
+            <button class="mpp-btn" id="open-synth-btn">Синтезатор</button>
+            
+            <button class="mpp-btn" id="open-settings-btn" style="grid-column: span 3;">Аккаунт</button>
+
+            <div id="admin-controls">
+                <button class="admin-btn-wide" id="admin-invisible-btn">Режим невидимки</button>
+                <button class="admin-btn-wide" id="admin-clear-chat">Очистить чат</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="piano-wrapper" id="piano-wrapper">
+        <div class="piano" id="piano"></div>
+    </div>
+
+    <div id="right-bottom-panel">
+        <div class="vol-display">
+            <span>VOLUME</span>
+            <div class="vol-line" id="vol-line"><div class="vol-fill" id="vol-fill"></div></div>
+            <span id="vol-text">80%</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        let myName = localStorage.getItem('mpp_name') || "anonymous";
+        let myColor = localStorage.getItem('mpp_color') || "#00ffff";
+        let currentRoom = urlParams.get('room') || "Lobby"; 
+        let mySecretKey = localStorage.getItem('mpp_secret') || null;
+        let mySocketId = null;
+        let isInvisible = false;
+        let isBot = localStorage.getItem('mpp_is_bot') === "true";
+
+        let ws = null;
+        let audioReady = false;
+        let currentInstrument = "acoustic_grand_piano";
+        let instruments = {}; 
+        let currentVolume = 0.8;
+        let tempColor = myColor;
+
+        let synthWave = "sine";
+        let synthAttack = 0.05;
+        let synthRelease = 1.5;
+        let isSynthMode = false; 
+
+        let isRecording = false;
+        let recStartTime = 0;
+        let recordedNotes = []; 
+
+        let localMutedChat = new Set();
+        let localMutedNotes = new Set();
+
+        let midiAccess = null;
+        let activeMidiInput = null;
+        let midiOutput = null;
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+
+        const facts = [
+            "Знаете ли вы? Первое пианино было изобретено в 1700 году Бартоломео Кристофори.",
+            "Факт: У стандартного пианино 88 клавиш, но на старых инструментах их было всего 85.",
+            "Этот сайт работает на WebSockets! Каждое нажатие клавиши летит на сервер и обратно за миллисекунды.",
+            "Интересно: Слово 'пианино' происходит от итальянского 'pianoforte' — 'тихо-громко'.",
+            "Секрет: Все звуки на этом сайте синтезируются прямо в вашем браузере, без скачивания MP3 на сервер.",
+            "Знаете ли вы? Стив Уандер, Стиви Уандер и Элтон Джон — одни из самых известных пианистов в истории.",
+            "Факт: Скорость звука в воздухе — 343 метра в секунду. Именно поэтому гром — это отстающий звук.",
+            "Сайт MppHaunted:D был создан с нуля. Никаких готовых движков, только чистый код.",
+            "Удивительно: Самая высокая нота на пианино — до 8-й октавы (4186 Гц), а самая низкая — ля субконтроктавы (27.5 Гц).",
+            "Совет: Кликните по своему нику в списке ОНЛАЙН, чтобы сменить цвет и имя!"
+        ];
+
+        document.getElementById('fact-display').innerText = facts[Math.floor(Math.random() * facts.length)];
+
+        function showToast(text, type) {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            el.innerText = text;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.animation = 'fadeOut 0.3s forwards';
+                setTimeout(() => el.remove(), 300);
+            }, 3000);
+        }
+
+        function getNeonColor(hue) {
+            return `hsl(${hue}, 100%, 60%)`;
+        }
+
+        document.getElementById('enter-btn').addEventListener('click', async () => {
+            await ctx.resume();
+            audioReady = true;
+            document.getElementById('intro-screen').style.display = 'none';
+            
+            connectWebSocket();
+            loadInstrument(currentInstrument);
+            initMIDI();
+        });
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ type: 'join', name: myName, color: myColor, room: currentRoom, secretKey: mySecretKey, invisible: isInvisible, isBot: isBot }));
+                ws.send(JSON.stringify({ type: 'requestRoomsList' }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                switch (data.type) {
+                    case 'roomsList':
+                        updateRoomsDropdown(data.rooms);
+                        break;
+                    case 'playerList':
+                        updatePlayersList(data.players);
+                        break;
+                    case 'notePlayed':
+                        if (localMutedNotes.has(data.name)) break;
+                        let oldMode = isSynthMode;
+                        isSynthMode = data.isSynth;
+                        playNote(data.midi, data.instrument, currentVolume * 0.9);
+                        isSynthMode = oldMode;
+                        highlightKey(data.midi, data.color);
+                        if (midiOutput) {
+                            midiOutput.send([0x90, data.midi, 100]);
+                            setTimeout(() => midiOutput.send([0x80, data.midi, 0]), 500);
+                        }
+                        break;
+                    case 'chatMessage':
+                        if (localMutedChat.has(data.name)) break;
+                        addChatMessage(data.name, data.text, data.color);
+                        break;
+                    case 'systemMessage':
+                        showToast(data.text, "system");
+                        break;
+                    case 'globalToast':
+                        showToast(data.text, data.toastType);
+                        break;
+                    case 'roomCreated':
+                        switchRoom(data.roomName);
+                        showToast(`Комната ${data.roomName} создана!`, "join");
+                        break;
+                    case 'roomError':
+                        showToast(data.error, "leave");
+                        break;
+                    case 'roomSettingsUpdated':
+                        applyRoomSettings(data.settings);
+                        break;
+                    case 'clearChat':
+                        document.getElementById('chat-messages').innerHTML = '';
+                        break;
+                    case 'invisibleToggled':
+                        isInvisible = data.invisible;
+                        document.getElementById('admin-invisible-btn').innerText = isInvisible ? "Выйти из невидимки" : "Режим невидимки";
+                        break;
+                    case 'kicked':
+                        showToast("Вы были кикнуты!", "leave");
+                        ws.close();
+                        setTimeout(() => location.reload(), 2000);
+                        break;
+                    case 'banned':
+                        document.getElementById('ban-screen').classList.add('active');
+                        document.getElementById('ban-text').innerHTML = `<strong>Your IP address is suspicious and has been blocked to prevent abuse.</strong><br><br>Reason: ${data.reason}`;
+                        document.getElementById('ban-my-id').innerText = crypto.randomUUID();
+                        break;
+                    case 'muted':
+                        document.getElementById('mute-banner').classList.add('active');
+                        let timeLeft = data.duration;
+                        document.getElementById('mute-banner').innerText = `You have to mute! (Причина: ${data.reason}) (Осталось: ${timeLeft} сек)`;
+                        
+                        const muteInterval = setInterval(() => {
+                            timeLeft--;
+                            if (timeLeft <= 0) {
+                                clearInterval(muteInterval);
+                                document.getElementById('mute-banner').classList.remove('active');
+                            } else {
+                                document.getElementById('mute-banner').innerText = `You have to mute! (Причина: ${data.reason}) (Осталось: ${timeLeft} сек)`;
+                            }
+                        }, 1000);
+                        break;
+                    case 'unmuted':
+                        document.getElementById('mute-banner').classList.remove('active');
+                        break;
+                    case 'newReport':
+                        const banConfirm = confirm(`Жалоба от ${data.report.reporterName} на ${data.report.targetName}\nПричина: ${data.report.reason}\n\nЗабанить?`);
+                        if (banConfirm) {
+                            const duration = parseInt(prompt("На сколько секунд?", "3600"));
+                            if (duration) {
+                                ws.send(JSON.stringify({ 
+                                    type: 'adminAction', 
+                                    action: 'ban', 
+                                    targetId: data.report.targetId, 
+                                    reason: data.report.reason, 
+                                    duration: duration 
+                                }));
+                            }
+                        }
+                        break;
+                }
+            };
+
+            ws.onclose = () => {
+                if (!document.getElementById('ban-screen').classList.contains('active')) {
+                    showToast("Соединение потеряно. Переподключение...", 'restarting');
+                    setTimeout(connectWebSocket, 2000);
+                }
+            };
+        }
+
+        async function initMIDI() {
+            if (navigator.requestMIDIAccess) {
+                try {
+                    midiAccess = await navigator.requestMIDIAccess();
+                    updateMIDIDevices();
+                    midiAccess.onstatechange = updateMIDIDevices;
+                } catch (err) {
+                    console.warn("MIDI доступ запрещен.");
+                }
+            } else {
+                console.warn("Ваш браузер не поддерживает Web MIDI API.");
+            }
+        }
+
+        function updateMIDIDevices() {
+            const select = document.getElementById('midi-select');
+            select.innerHTML = '<option value="">-- Не выбрано --</option>';
+            
+            if (!midiAccess) return;
+
+            for (let input of midiAccess.inputs.values()) {
+                const opt = document.createElement('option');
+                opt.value = input.id;
+                opt.text = input.name;
+                select.appendChild(opt);
+            }
+        }
+
+        document.getElementById('open-midi-btn').addEventListener('click', () => {
+            document.getElementById('midi-modal').classList.add('active');
+        });
+
+        document.getElementById('midi-select').addEventListener('change', (e) => {
+            const inputId = e.target.value;
+            if (activeMidiInput) {
+                activeMidiInput.onmidimessage = null;
+                activeMidiInput = null;
+            }
+            if (inputId) {
+                activeMidiInput = midiAccess.inputs.get(inputId);
+                activeMidiInput.onmidimessage = (message) => {
+                    const [command, note, velocity] = message.data;
+                    if (command === 144 && velocity > 0) {
+                        playNote(note, currentInstrument, currentVolume);
+                        highlightKey(note);
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({ type: 'noteOn', midi: note, instrument: currentInstrument, isSynth: isSynthMode }));
+                        }
+                    }
+                };
+                showToast(`Подключено: ${activeMidiInput.name}`, "join");
+            } else {
+                showToast("MIDI устройство отключено", "leave");
+            }
+        });
+
+        const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const keys = []; 
+        for (let midi = 21; midi <= 108; midi++) {
+            const octave = Math.floor(midi / 12) - 1;
+            const noteName = noteNames[midi % 12];
+            keys.push({ midi, name: noteName + octave, isBlack: noteName.includes("#") });
+        }
+
+        function midiToFreq(midi) {
+            return 440 * Math.pow(2, (midi - 69) / 12);
+        }
+
+        async function loadInstrument(name) {
+            if (instruments[name]) return instruments[name];
+            const inst = await Soundfont.instrument(ctx, name, { format: 'mp3', soundfont: 'MusyngKite' });
+            instruments[name] = inst;
+            return inst;
+        }
+
+        let activeOscillators = 0;
+
+        async function playNote(midi, instrumentName = currentInstrument, vol = currentVolume, fromRec = false) {
+            if (!audioReady) return;
+            if (activeOscillators > 30) return; 
+
+            activeOscillators++;
+            setTimeout(() => activeOscillators--, 1000);
+
+            if (isSynthMode) {
+                const osc = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                osc.type = synthWave;
+                osc.frequency.value = midiToFreq(midi);
+                osc.connect(gainNode);
+                gainNode.connect(ctx.destination);
+
+                const now = ctx.currentTime;
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(vol, now + parseFloat(synthAttack));
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + parseFloat(synthRelease));
+
+                osc.start(now);
+                osc.stop(now + parseFloat(synthRelease));
+            } else {
+                const inst = await loadInstrument(instrumentName);
+                try {
+                    inst.play(midi.toString(), ctx.currentTime, { duration: 2.5, gain: vol });
+                } catch (e) {
+                    console.warn("Ошибка воспроизведения (перегрузка)");
+                }
+            }
+
+            if (isRecording && !fromRec) {
+                const delay = Date.now() - recStartTime;
+                recordedNotes.push({ midi, delay, inst: currentInstrument, synth: isSynthMode, synthWave: synthWave });
+            }
+        }
+
+        function highlightKey(midi, color = null) {
+            const el = document.querySelector(`[data-midi="${midi}"]`);
+            if (el) {
+                if (color) {
+                    el.style.background = color;
+                    el.style.boxShadow = `0 0 15px ${color}`;
+                    if (el.classList.contains('key-white')) el.style.color = '#000';
+                } else {
+                    el.classList.add('active');
+                }
+                setTimeout(() => {
+                    if (color) {
+                        el.style.background = '';
+                        el.style.boxShadow = '';
+                        el.style.color = '';
+                    } else {
+                        el.classList.remove('active');
+                    }
+                }, 200);
+            }
+        }
+
+        const pianoEl = document.getElementById('piano');
+        const WHITE_KEY_WIDTH = 40;
+        const BLACK_KEY_OFFSET = 13; 
+        const PADDING = 10; 
+
+        keys.forEach((key) => {
+            if (!key.isBlack) {
+                const el = document.createElement('div');
+                el.className = 'key-white';
+                el.dataset.midi = key.midi;
+                if (key.name.startsWith("C")) el.innerText = key.name;
+
+                el.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    playNote(key.midi, currentInstrument, currentVolume);
+                    highlightKey(key.midi);
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'noteOn', midi: key.midi, instrument: currentInstrument, isSynth: isSynthMode }));
+                    }
+                });
+                pianoEl.appendChild(el);
+            }
+        });
+
+        let currentWhiteIndex = 0;
+        keys.forEach((key) => {
+            if (!key.isBlack) {
+                currentWhiteIndex++;
+            } else {
+                const el = document.createElement('div');
+                el.className = 'key-black';
+                el.dataset.midi = key.midi;
+                el.style.left = `${(currentWhiteIndex * WHITE_KEY_WIDTH) - BLACK_KEY_OFFSET + PADDING}px`;
+
+                el.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    playNote(key.midi, currentInstrument, currentVolume);
+                    highlightKey(key.midi);
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'noteOn', midi: key.midi, instrument: currentInstrument, isSynth: isSynthMode }));
+                    }
+                });
+                pianoEl.appendChild(el);
+            }
+        });
+
+        // --- Комнаты ---
+        const roomSelectBtn = document.getElementById('room-select-btn');
+        const roomDropdown = document.getElementById('room-dropdown');
+        const currentRoomLabel = document.getElementById('current-room-label');
+
+        roomSelectBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            roomDropdown.classList.toggle('active');
+            if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'requestRoomsList' }));
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!roomSelectBtn.contains(e.target) && !roomDropdown.contains(e.target)) {
+                roomDropdown.classList.remove('active');
+            }
+        });
+
+        document.getElementById('open-room-btn').addEventListener('click', () => {
+            document.getElementById('new-room-name').value = "";
+            document.getElementById('room-modal').classList.add('active');
+        });
+
+        document.getElementById('create-room-btn').addEventListener('click', () => {
+            const roomName = document.getElementById('new-room-name').value.trim();
+            const isVisible = document.getElementById('create-room-visible').checked;
+            
+            if (!roomName) {
+                showToast("Введите название комнаты!", "leave");
+                return;
+            }
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'createRoom', roomName, isVisible }));
+            }
+            document.getElementById('room-modal').classList.remove('active');
+        });
+
+        function switchRoom(roomName) {
+            currentRoom = roomName;
+            mySocketId = null; 
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'join', name: myName, color: myColor, room: currentRoom, secretKey: mySecretKey, invisible: isInvisible, isBot: isBot }));
+            }
+            document.getElementById('chat-messages').innerHTML = '';
+            roomDropdown.classList.remove('active');
+
+            currentRoomLabel.innerText = "📍 " + currentRoom;
+            
+            if (currentRoom === 'Lobby') {
+                currentRoomLabel.style.color = "#ffcc00";
+                history.replaceState(null, '', window.location.pathname);
+            } else {
+                currentRoomLabel.style.color = "#7cc4ff";
+                history.replaceState(null, '', '?room=' + encodeURIComponent(roomName));
+            }
+        }
+
+        function updateRoomsDropdown(roomsData) {
+            roomDropdown.innerHTML = '';
+            
+            const SYSTEM_ROOMS = ["Lobby", "test/awkward"];
+
+            SYSTEM_ROOMS.forEach(sysRoom => {
+                if (!roomsData.some(r => r.id === sysRoom)) {
+                    roomsData.push({ id: sysRoom, players: [] });
+                }
+            });
+
+            roomsData.sort((a, b) => {
+                const aSys = SYSTEM_ROOMS.includes(a.id);
+                const bSys = SYSTEM_ROOMS.includes(b.id);
+                if (aSys && !bSys) return -1;
+                if (!aSys && bSys) return 1;
+                return a.id.localeCompare(b.id);
+            });
+
+            roomsData.forEach(room => {
+                const option = document.createElement('div');
+                option.className = 'room-option';
+                
+                if (SYSTEM_ROOMS.includes(room.id)) {
+                    option.classList.add('lobby');
+                }
+                
+                if (room.id === currentRoom) option.classList.add('active-room');
+                
+                option.innerHTML = `<span>${room.id}</span> <span class="room-count">(${room.players.length})</span>`;
+                
+                option.onclick = () => {
+                    if (room.id !== currentRoom) switchRoom(room.id);
+                };
+                roomDropdown.appendChild(option);
+            });
+        }
+
+        function updatePlayersList(players) {
+            const list = document.getElementById('players-list');
+            list.innerHTML = '';
+            
+            const me = players.find(p => p.name === myName);
+            if (me) mySocketId = me.id;
+            const iAmAdmin = me && me.isOwner;
+
+            document.getElementById('admin-controls').classList.toggle('active', iAmAdmin);
+
+            const roomSettingsBtn = document.getElementById('room-settings-btn');
+            if (me && me.isOwner && currentRoom !== 'Lobby' && currentRoom !== 'test/awkward') {
+                roomSettingsBtn.style.display = 'block';
+            } else {
+                roomSettingsBtn.style.display = 'none';
+            }
+
+            players.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'player-item';
+                const isMe = p.id === mySocketId; 
+                if (isMe) el.classList.add('me');
+                
+                const meLabel = isMe ? ' <span style="font-size: 10px; color: #888; font-weight: normal;">(ME)</span>' : '';
+                const ownerTag = p.isOwner ? ' <span class="tag-owner">(OWNER)</span>' : '';
+                const botTag = p.isBot ? ' <span class="tag-bot">[BOT]</span>' : '';
+                const muteTag = p.isMuted ? ' <span class="tag-muted">(MUTED)</span>' : '';
+                const invTag = p.invisible ? ' <span class="tag-invisible">(INVIS)</span>' : '';
+                
+                let html = `<div class="player-name" onclick="openPlayerMenu('${p.id}', '${p.name}')">`;
+                html += `<div class="player-dot" style="background: ${p.color}; box-shadow: 0 0 5px ${p.color};"></div>`;
+                html += `<span style="color: ${p.color}; text-shadow: 0 0 2px ${p.color};">${p.name}${meLabel}${ownerTag}${botTag}${muteTag}${invTag}</span>`;
+                html += `</div>`;
+                el.innerHTML = html;
+                list.appendChild(el);
+            });
+        }
+
+        let selectedPlayerId = null;
+        let selectedPlayerName = null;
+
+        window.openPlayerMenu = function(id, name) {
+            if (id === mySocketId) {
+                openSettings();
+                return;
+            }
+            
+            selectedPlayerId = id;
+            selectedPlayerName = name;
+
+            if (mySecretKey === "hauntedIScoolcLAn20226") {
+                document.getElementById('admin-action-title').innerText = `Управление: ${name}`;
+                document.getElementById('admin-action-modal').classList.add('active');
+            } else {
+                document.getElementById('player-action-title').innerText = `Действия: ${name}`;
+                document.getElementById('player-action-modal').classList.add('active');
+            }
+        };
+
+        document.getElementById('act-mention').addEventListener('click', () => {
+            document.getElementById('chat-input').value += `@${selectedPlayerName} `;
+            document.getElementById('chat-input').focus();
+            document.getElementById('player-action-modal').classList.remove('active');
+        });
+
+        document.getElementById('act-mute-chat').addEventListener('click', () => {
+            localMutedChat.add(selectedPlayerName);
+            showToast(`Чат ${selectedPlayerName} скрыт`, "join");
+            document.getElementById('player-action-modal').classList.remove('active');
+        });
+
+        document.getElementById('act-mute-notes').addEventListener('click', () => {
+            localMutedNotes.add(selectedPlayerName);
+            showToast(`Пианино ${selectedPlayerName} скрыто`, "join");
+            document.getElementById('player-action-modal').classList.remove('active');
+        });
+
+        document.getElementById('act-mute-complete').addEventListener('click', () => {
+            localMutedChat.add(selectedPlayerName);
+            localMutedNotes.add(selectedPlayerName);
+            showToast(`${selectedPlayerName} полностью скрыт`, "join");
+            document.getElementById('player-action-modal').classList.remove('active');
+        });
+
+        document.getElementById('act-report').addEventListener('click', () => {
+            const reason = prompt("Причина жалобы:");
+            if (reason) {
+                ws.send(JSON.stringify({ 
+                    type: 'reportPlayer', 
+                    reporterName: myName, 
+                    targetName: selectedPlayerName, 
+                    targetId: selectedPlayerId, 
+                    reason: reason 
+                }));
+                document.getElementById('player-action-modal').classList.remove('active');
+            }
+        });
+
+        document.getElementById('admin-invisible-btn').addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'adminAction', action: 'toggleInvisible' }));
+            }
+        });
+
+        document.getElementById('admin-btn-kick').addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'adminAction', action: 'kick', targetId: selectedPlayerId }));
+            }
+            document.getElementById('admin-action-modal').classList.remove('active');
+        });
+
+        document.getElementById('admin-btn-ban').addEventListener('click', () => {
+            const reason = document.getElementById('admin-reason').value;
+            const duration = parseInt(document.getElementById('admin-duration').value);
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'adminAction', action: 'ban', targetId: selectedPlayerId, reason, duration }));
+            }
+            document.getElementById('admin-action-modal').classList.remove('active');
+        });
+
+        document.getElementById('admin-btn-mute').addEventListener('click', () => {
+            const reason = document.getElementById('admin-reason').value;
+            const duration = parseInt(document.getElementById('admin-duration').value);
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'adminAction', action: 'mute', targetId: selectedPlayerId, reason, duration }));
+            }
+            document.getElementById('admin-action-modal').classList.remove('active');
+        });
+
+        document.getElementById('admin-clear-chat').addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'adminAction', action: 'clearChat' }));
+            }
+        });
+
+        function addChatMessage(name, text, color) {
+            const chatMessages = document.getElementById('chat-messages');
+            const el = document.createElement('div');
+            el.innerHTML = `<span class="msg-name" style="color: ${color}; text-shadow: 0 0 5px ${color};">${name}:</span> <span style="color:#e0e0e0">${text}</span>`;
+            chatMessages.appendChild(el);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        document.getElementById('room-settings-btn').addEventListener('click', () => {
+            document.getElementById('room-settings-modal').classList.add('active');
+        });
+
+        document.getElementById('apply-room-settings-btn').addEventListener('click', () => {
+            const settings = {
+                visible: document.getElementById('room-setting-visible').checked,
+                chatEnabled: document.getElementById('room-setting-chat').checked,
+                onlyOwnerCanPlay: document.getElementById('room-setting-owner-play').checked,
+                bgColor: document.getElementById('room-setting-bg').value
+            };
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'updateRoomSettings', settings }));
+            }
+            document.getElementById('room-settings-modal').classList.remove('active');
+            showToast("Настройки применены", "join");
+        });
+
+        function applyRoomSettings(settings) {
+            const wrapper = document.getElementById('piano-wrapper');
+            if (currentRoom === 'Lobby' || currentRoom === 'test/awkward') {
+                wrapper.style.background = `linear-gradient(180deg, #05010a 0%, #1a0b2e 100%)`;
+            } else {
+                wrapper.style.background = settings.bgColor;
+            }
+
+            document.getElementById('room-setting-visible').checked = settings.visible;
+            document.getElementById('room-setting-chat').checked = settings.chatEnabled;
+            document.getElementById('room-setting-owner-play').checked = settings.onlyOwnerCanPlay;
+            document.getElementById('room-setting-bg').value = settings.bgColor || "#000000";
+        }
+
+        const modal = document.getElementById('settings-modal');
+        const colorBtn = document.getElementById('current-color-btn');
+        const nameInputModal = document.getElementById('modal-name-input');
+        const hueSlider = document.getElementById('hue-slider');
+        const adminToggle = document.getElementById('admin-toggle');
+        const botToggleRow = document.getElementById('bot-toggle-row');
+        const botToggle = document.getElementById('bot-toggle');
+
+        hueSlider.addEventListener('input', (e) => {
+            const hue = e.target.value;
+            tempColor = getNeonColor(hue);
+            colorBtn.style.background = tempColor;
+            colorBtn.style.boxShadow = `0 0 15px ${tempColor}`;
+        });
+
+        function openSettings() {
+            tempColor = myColor;
+            const match = myColor.match(/hsl\((\d+)/);
+            if (match) hueSlider.value = match[1];
+            else hueSlider.value = 180;
+
+            nameInputModal.value = myName;
+            colorBtn.style.background = myColor;
+            colorBtn.style.boxShadow = `0 0 15px ${myColor}`;
+            
+            const isAdmin = mySecretKey === "hauntedIScoolcLAn20226";
+            adminToggle.checked = isAdmin;
+            
+            if (isAdmin) {
+                botToggleRow.style.display = 'flex';
+                botToggle.checked = isBot;
+            } else {
+                botToggleRow.style.display = 'none';
+            }
+
+            modal.classList.add('active');
+        }
+
+        document.getElementById('modal-save-btn').addEventListener('click', () => {
+            const newName = nameInputModal.value.trim();
+            if (newName) myName = newName;
+            myColor = tempColor;
+            
+            if (adminToggle.checked) {
+                if (mySecretKey !== "hauntedIScoolcLAn20226") {
+                    const inputPassword = prompt("Введите секретный ключ OWNER:");
+                    if (inputPassword === "hauntedIScoolcLAn20226") {
+                        mySecretKey = "hauntedIScoolcLAn20226";
+                        showToast("Режим OWNER активирован", "join");
+                        botToggleRow.style.display = 'flex';
+                    } else {
+                        mySecretKey = null;
+                        adminToggle.checked = false;
+                        botToggleRow.style.display = 'none';
+                        showToast("Неверный ключ! Режим OWNER не активирован", "leave");
+                    }
+                } else {
+                    mySecretKey = "hauntedIScoolcLAn20226";
+                }
+            } else {
+                mySecretKey = null;
+                botToggleRow.style.display = 'none';
+                isBot = false;
+            }
+
+            if (mySecretKey === "hauntedIScoolcLAn20226" && botToggle.checked) {
+                isBot = true;
+            } else {
+                isBot = false;
+            }
+
+            localStorage.setItem('mpp_name', myName);
+            localStorage.setItem('mpp_color', myColor);
+            localStorage.setItem('mpp_secret', mySecretKey || "");
+            localStorage.setItem('mpp_is_bot', isBot);
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'join', name: myName, color: myColor, room: currentRoom, secretKey: mySecretKey, invisible: isInvisible, isBot: isBot })); 
+            }
+            
+            modal.classList.remove('active');
+            showToast("Профиль обновлён", "join");
+        });
+
+        document.getElementById('modal-close-btn').addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+
+        const volLine = document.getElementById('vol-line');
+        const volFill = document.getElementById('vol-fill');
+        const volText = document.getElementById('vol-text');
+
+        volLine.addEventListener('click', (e) => {
+            const rect = volLine.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const width = rect.width;
+            let percentage = Math.floor((x / width) * 100);
+            if (percentage < 0) percentage = 0;
+            if (percentage > 100) percentage = 100;
+            
+            currentVolume = percentage / 100;
+            volText.innerText = percentage + '%';
+            volFill.style.width = percentage + '%';
+        });
+
+        document.getElementById('instrument-select').addEventListener('change', async (e) => {
+            currentInstrument = e.target.value;
+            isSynthMode = false; 
+            if (audioReady) await loadInstrument(currentInstrument);
+            showToast("Инструмент изменён", "join");
+        });
+
+        document.getElementById('synth-wave').addEventListener('change', (e) => {
+            synthWave = e.target.value;
+            isSynthMode = true; 
+            showToast("Синтезатор включен", "join");
+        });
+
+        document.getElementById('synth-attack').addEventListener('input', (e) => {
+            synthAttack = e.target.value;
+        });
+
+        document.getElementById('synth-release').addEventListener('input', (e) => {
+            synthRelease = e.target.value;
+        });
+
+        document.getElementById('open-settings-btn').addEventListener('click', openSettings);
+        document.getElementById('open-instrument-btn').addEventListener('click', () => {
+            document.getElementById('instrument-modal').classList.add('active');
+        });
+        document.getElementById('open-synth-btn').addEventListener('click', () => {
+            document.getElementById('synth-modal').classList.add('active');
+        });
+
+        document.getElementById('chat-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const text = e.target.value.trim();
+                if (text && ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'chatMessage', name: myName, text: text, color: myColor }));
+                    e.target.value = '';
+                }
+            }
+        });
+
+        document.body.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'TEXTAREA') {
+                document.activeElement.blur();
+            }
+        });
+
+        const keyboardMap = {
+            'z': 'C5', 's': 'C#5', 'x': 'D5', 'd': 'D#5', 'c': 'E5', 'v': 'F5', 'g': 'F#5', 'b': 'G5', 'h': 'G#5', 'n': 'A5', 'j': 'A#5', 'm': 'B5',
+            'comma': 'C6', 'l': 'C#6', 'period': 'D6', 'semicolon': 'D#6', 'slash': 'E6',
+            'q': 'C4', '2': 'C#4', 'w': 'D4', '3': 'D#4', 'e': 'E4', 'r': 'F4', '5': 'F#4', 't': 'G4', '6': 'G#4', 'y': 'A4', '7': 'A#4', 'u': 'B4',
+            'i': 'C5', '9': 'C#5', 'o': 'D5', '0': 'D#5', 'p': 'E5', '[ ': 'F5'
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+
+            let key = e.code.toLowerCase();
+            if (key === 'comma') key = 'comma';
+            if (key === 'period') key = 'period';
+            if (key === 'semicolon') key = 'semicolon';
+            if (key === 'slash') key = 'slash';
+            if (key.startsWith('key')) key = key.replace('key', '');
+            if (key.startsWith('digit')) key = key.replace('digit', '');
+            if (key === 'bracketleft') key = '[ ';
+            
+            const noteName = keyboardMap[key];
+            if (noteName) {
+                const keyObj = keys.find(k => k.name === noteName);
+                if (keyObj) {
+                    playNote(keyObj.midi, currentInstrument, currentVolume);
+                    highlightKey(keyObj.midi);
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'noteOn', midi: keyObj.midi, instrument: currentInstrument, isSynth: isSynthMode }));
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

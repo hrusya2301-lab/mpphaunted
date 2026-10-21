@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MppHaunted:D — Плеер</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #05010a; color: #fff; font-family: Arial, sans-serif;
+            height: 100vh; display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        .player-box {
+            background: #0a0a0f; border: 2px solid #7cc4ff; border-radius: 20px;
+            padding: 40px; text-align: center; box-shadow: 0 0 50px rgba(124, 196, 255, 0.4);
+            max-width: 400px; width: 90%;
+        }
+        h1 { color: #7cc4ff; text-shadow: 0 0 15px #7cc4ff; margin-bottom: 30px; font-size: 24px; }
+        .play-btn {
+            background: transparent; color: #33ff57; border: 3px solid #33ff57;
+            padding: 15px 40px; border-radius: 50px; font-size: 20px; font-weight: bold;
+            cursor: pointer; text-shadow: 0 0 10px #33ff57; box-shadow: 0 0 20px #33ff57, inset 0 0 20px #33ff57;
+            transition: 0.3s; margin-bottom: 20px;
+        }
+        .play-btn:hover { background: #33ff57; color: #000; box-shadow: 0 0 40px #33ff57; }
+        .status { color: #ccc; font-size: 14px; min-height: 20px; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
+</head>
+<body>
+
+    <div class="player-box">
+        <h1>Твой шедевр!</h1>
+        <button class="play-btn" id="play-btn">▶ ПРОИГРАТЬ</button>
+        <div class="status" id="status">Нажми кнопку, чтобы услышать мелодию</div>
+    </div>
+
+    <script>
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+        let instruments = {};
+        
+        async function loadInstrument(name) {
+            if (instruments[name]) return instruments[name];
+            const inst = await Soundfont.instrument(ctx, name, { format: 'mp3', soundfont: 'MusyngKite' });
+            instruments[name] = inst;
+            return inst;
+        }
+
+        function midiToFreq(midi) {
+            return 440 * Math.pow(2, (midi - 69) / 12);
+        }
+
+        document.getElementById('play-btn').addEventListener('click', async () => {
+            await ctx.resume();
+            document.getElementById('status').innerText = "Играет...";
+            
+            // Получаем данные из URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const recData = urlParams.get('rec');
+            
+            if (!recData) {
+                document.getElementById('status').innerText = "Ошибка: мелодия не найдена.";
+                return;
+            }
+
+            try {
+                const json = decodeURIComponent(escape(atob(recData)));
+                const notes = JSON.parse(json);
+                
+                notes.forEach(n => {
+                    setTimeout(async () => {
+                        if (n.synth) {
+                            // Синтез
+                            const osc = ctx.createOscillator();
+                            const gainNode = ctx.createGain();
+                            osc.type = n.synthWave || 'sine';
+                            osc.frequency.value = midiToFreq(n.midi);
+                            osc.connect(gainNode);
+                            gainNode.connect(ctx.destination);
+                            
+                            const now = ctx.currentTime;
+                            gainNode.gain.setValueAtTime(0, now);
+                            gainNode.gain.linearRampToValueAtTime(0.8, now + 0.05);
+                            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+                            osc.start(now);
+                            osc.stop(now + 1.5);
+                        } else {
+                            // Сэмплы
+                            const inst = await loadInstrument(n.inst || "acoustic_grand_piano");
+                            inst.play(n.midi.toString(), ctx.currentTime, { duration: 2.5, gain: 0.8 });
+                        }
+                    }, n.delay + 100);
+                });
+                
+                setTimeout(() => {
+                    document.getElementById('status').innerText = "Мелодия завершена.";
+                }, notes[notes.length - 1].delay + 2000);
+
+            } catch(e) {
+                document.getElementById('status').innerText = "Ошибка чтения мелодии.";
+            }
+        });
+    </script>
+</body>
+</html>
