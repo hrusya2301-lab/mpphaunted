@@ -293,7 +293,6 @@
         let currentRoom = "Lobby";
         let isOwner = false;
 
-        // --- АУДИО ДВИЖОК ---
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const audioCtx = new AudioContext();
         
@@ -303,10 +302,9 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             
-            osc.type = 'triangle'; // Звук ближе к пианино
+            osc.type = 'triangle';
             osc.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
             
-            // Резкая атака и плавное затухание
             gain.gain.setValueAtTime(0, audioCtx.currentTime);
             gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.02);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2);
@@ -318,7 +316,6 @@
             osc.stop(audioCtx.currentTime + 2);
         }
 
-        // --- ГЕНЕРАЦИЯ ПИАНИНО (C2 - B5) ---
         const notes = [
             { midi: 36, note: 'C', sharp: false }, { midi: 37, note: 'C#', sharp: true },
             { midi: 38, note: 'D', sharp: false }, { midi: 39, note: 'D#', sharp: true },
@@ -358,7 +355,6 @@
             
             if (n.sharp) {
                 key.className = 'black-key';
-                // Позиционирование черных клавиш
                 let offset = 0;
                 if (n.note === 'C#') offset = 30;
                 if (n.note === 'D#') offset = 78;
@@ -372,8 +368,7 @@
                 key.textContent = n.note + Math.floor(n.midi / 12 - 1);
                 whiteKeyCount++;
             }
-
-            // События мыши
+            
             key.addEventListener('mousedown', () => triggerNote(n.midi));
             key.addEventListener('mouseup', () => key.classList.remove('active'));
             key.addEventListener('mouseleave', () => key.classList.remove('active'));
@@ -435,7 +430,7 @@
             myName = document.getElementById('username').value || "Аноним";
             const secretKey = document.getElementById('secretKey').value || null;
             
-            ws = new WebSocket(`ws://${window.location.host}`);
+            ws = new WebSocket(`wss://${window.location.host}`);
 
             ws.onopen = () => {
                 document.getElementById('modal').style.display = 'none';
