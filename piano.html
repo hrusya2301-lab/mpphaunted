@@ -1,16 +1,527 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="utf-8">
-    <title>ТЕСТ ЕБАНУТОСТИ</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPP.Haunted | Neon Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #05000a;
+            --neon-blue: #00e5ff;
+            --neon-pink: #ff00ea;
+            --panel-bg: rgba(10, 0, 20, 0.85);
+            --text-color: #e0e0e0;
+        }
+
+        * { box-sizing: border-box; user-select: none; }
+
+        body {
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255, 0, 234, 0.1) 0%, transparent 60%),
+                radial-gradient(circle at 10% 90%, rgba(0, 229, 255, 0.1) 0%, transparent 50%);
+        }
+
+        /* --- SIDEBAR --- */
+        #sidebar {
+            width: 280px;
+            background: var(--panel-bg);
+            border-right: 2px solid var(--neon-blue);
+            box-shadow: 2px 0 15px rgba(0, 229, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px var(--neon-pink);
+            letter-spacing: 2px;
+        }
+
+        .section { padding: 15px; flex: 1; overflow-y: auto; border-bottom: 1px solid rgba(0, 229, 255, 0.2); }
+        .section h3 { margin: 0 0 10px 0; font-size: 14px; color: var(--neon-blue); text-shadow: 0 0 5px var(--neon-blue); text-transform: uppercase; }
+        
+        ul { list-style: none; padding: 0; margin: 0; }
+        li {
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            background: rgba(0, 229, 255, 0.05);
+            border-left: 3px solid transparent;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        li:hover { background: rgba(0, 229, 255, 0.15); border-left-color: var(--neon-blue); cursor: pointer; }
+
+        /* --- MAIN AREA --- */
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #top-bar {
+            height: 60px;
+            background: var(--panel-bg);
+            border-bottom: 2px solid var(--neon-pink);
+            box-shadow: 0 2px 15px rgba(255, 0, 234, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        #room-name { font-size: 20px; color: #fff; text-shadow: 0 0 8px #fff; }
+        #status { font-size: 14px; color: var(--neon-pink); }
+
+        /* --- PIANO --- */
+        #piano-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding: 20px;
+            overflow-x: auto;
+            background: transparent;
+        }
+
+        #piano {
+            display: flex;
+            position: relative;
+            height: 250px;
+            padding-bottom: 20px;
+        }
+
+        .white-key {
+            width: 45px;
+            height: 100%;
+            background: #111;
+            border: 1px solid var(--neon-blue);
+            border-radius: 0 0 6px 6px;
+            margin: 0 1px;
+            position: relative;
+            z-index: 1;
+            cursor: pointer;
+            box-shadow: inset 0 -5px 15px rgba(0,0,0,0.8), 0 0 5px rgba(0, 229, 255, 0.1);
+            transition: background 0.1s, box-shadow 0.1s;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+            color: rgba(255,255,255,0.3);
+            font-size: 10px;
+        }
+
+        .white-key.active {
+            background: var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue), inset 0 0 10px #fff;
+            color: #000;
+        }
+
+        .black-key {
+            width: 28px;
+            height: 60%;
+            background: #000;
+            border: 1px solid var(--neon-pink);
+            border-radius: 0 0 4px 4px;
+            position: absolute;
+            z-index: 2;
+            cursor: pointer;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.9), 0 0 5px rgba(255, 0, 234, 0.2);
+            transition: background 0.1s, box-shadow 0.1s;
+        }
+
+        .black-key.active {
+            background: var(--neon-pink);
+            box-shadow: 0 0 20px var(--neon-pink), inset 0 0 10px #fff;
+        }
+
+        /* --- CHAT --- */
+        #chat-container {
+            height: 200px;
+            background: var(--panel-bg);
+            border-top: 1px solid rgba(0, 229, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 20px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .msg { margin-bottom: 5px; }
+        .msg-author { font-weight: bold; margin-right: 5px; }
+
+        #chat-input-area {
+            display: flex;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+        }
+
+        #chat-input {
+            flex: 1;
+            background: rgba(0, 229, 255, 0.05);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            color: #fff;
+            padding: 10px;
+            font-family: 'Orbitron', sans-serif;
+            outline: none;
+            border-radius: 4px;
+        }
+
+        #chat-input:focus { border-color: var(--neon-blue); box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }
+
+        /* Модалка */
+        #modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 0, 10, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-box {
+            background: #000;
+            border: 2px solid var(--neon-pink);
+            box-shadow: 0 0 30px rgba(255, 0, 234, 0.5);
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            width: 350px;
+        }
+
+        .modal-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background: #111;
+            border: 1px solid var(--neon-blue);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            outline: none;
+            text-align: center;
+        }
+
+        .modal-box button {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 2px solid var(--neon-pink);
+            color: var(--neon-pink);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .modal-box button:hover {
+            background: var(--neon-pink);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-pink);
+        }
+    </style>
 </head>
-<body style="background: black; color: white; padding: 50px;">
+<body>
 
-    <h1>ЕСЛИ ТЫ ЭТО ВИДИШЬ, ЗНАЧИТ ФАЙЛ ТОТ.</h1>
+    <div id="modal">
+        <div class="modal-box">
+            <h2 style="color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue);">ВХОД В СЕТЬ</h2>
+            <input type="text" id="username" placeholder="Твой ник" maxlength="16">
+            <input type="text" id="secretKey" placeholder="Секретный ключ (Admin)">
+            <button onclick="connect()">ПОДКЛЮЧИТЬСЯ</button>
+        </div>
+    </div>
 
-    <button style="font-size: 50px; background: red; color: white; padding: 20px 40px; border: 5px solid yellow; cursor: pointer;">
-        Я ЕБАНАЯ КНОПКА
-    </button>
+    <div id="sidebar">
+        <div class="header"><h1>MPP.HAUNTED</h1></div>
+        <div class="section">
+            <h3>Игроки</h3>
+            <ul id="player-list"></ul>
+        </div>
+    </div>
 
+    <div id="main">
+        <div id="top-bar">
+            <div id="room-name">Lobby</div>
+            <div id="status">Подключение...</div>
+        </div>
+
+        <div id="piano-container">
+            <div id="piano"></div>
+        </div>
+
+        <div id="chat-container">
+            <div id="chat-messages"></div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Нажми Enter, чтобы отправить..." onkeydown="handleChat(event)">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let myName = "Аноним";
+        let myId = null;
+        let myColor = "#00e5ff";
+        let currentRoom = "Lobby";
+        let isOwner = false;
+
+        // --- АУДИО ДВИЖОК ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+        
+        function playSynth(midi) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'triangle'; // Звук ближе к пианино
+            osc.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+            
+            // Резкая атака и плавное затухание
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 2);
+        }
+
+        // --- ГЕНЕРАЦИЯ ПИАНИНО (C2 - B5) ---
+        const notes = [
+            { midi: 36, note: 'C', sharp: false }, { midi: 37, note: 'C#', sharp: true },
+            { midi: 38, note: 'D', sharp: false }, { midi: 39, note: 'D#', sharp: true },
+            { midi: 40, note: 'E', sharp: false }, { midi: 41, note: 'F', sharp: false },
+            { midi: 42, note: 'F#', sharp: true }, { midi: 43, note: 'G', sharp: false },
+            { midi: 44, note: 'G#', sharp: true }, { midi: 45, note: 'A', sharp: false },
+            { midi: 46, note: 'A#', sharp: true }, { midi: 47, note: 'B', sharp: false },
+            
+            { midi: 48, note: 'C', sharp: false }, { midi: 49, note: 'C#', sharp: true },
+            { midi: 50, note: 'D', sharp: false }, { midi: 51, note: 'D#', sharp: true },
+            { midi: 52, note: 'E', sharp: false }, { midi: 53, note: 'F', sharp: false },
+            { midi: 54, note: 'F#', sharp: true }, { midi: 55, note: 'G', sharp: false },
+            { midi: 56, note: 'G#', sharp: true }, { midi: 57, note: 'A', sharp: false },
+            { midi: 58, note: 'A#', sharp: true }, { midi: 59, note: 'B', sharp: false },
+            
+            { midi: 60, note: 'C', sharp: false }, { midi: 61, note: 'C#', sharp: true },
+            { midi: 62, note: 'D', sharp: false }, { midi: 63, note: 'D#', sharp: true },
+            { midi: 64, note: 'E', sharp: false }, { midi: 65, note: 'F', sharp: false },
+            { midi: 66, note: 'F#', sharp: true }, { midi: 67, note: 'G', sharp: false },
+            { midi: 68, note: 'G#', sharp: true }, { midi: 69, note: 'A', sharp: false },
+            { midi: 70, note: 'A#', sharp: true }, { midi: 71, note: 'B', sharp: false },
+
+            { midi: 72, note: 'C', sharp: false }, { midi: 73, note: 'C#', sharp: true },
+            { midi: 74, note: 'D', sharp: false }, { midi: 75, note: 'D#', sharp: true },
+            { midi: 76, note: 'E', sharp: false }, { midi: 77, note: 'F', sharp: false },
+            { midi: 78, note: 'F#', sharp: true }, { midi: 79, note: 'G', sharp: false },
+            { midi: 80, note: 'G#', sharp: true }, { midi: 81, note: 'A', sharp: false },
+            { midi: 82, note: 'A#', sharp: true }, { midi: 83, note: 'B', sharp: false }
+        ];
+
+        const pianoEl = document.getElementById('piano');
+        let whiteKeyCount = 0;
+
+        notes.forEach(n => {
+            const key = document.createElement('div');
+            key.dataset.midi = n.midi;
+            
+            if (n.sharp) {
+                key.className = 'black-key';
+                // Позиционирование черных клавиш
+                let offset = 0;
+                if (n.note === 'C#') offset = 30;
+                if (n.note === 'D#') offset = 78;
+                if (n.note === 'F#') offset = 172;
+                if (n.note === 'G#') offset = 220;
+                if (n.note === 'A#') offset = 268;
+                
+                key.style.left = `${(whiteKeyCount * 47) - 14 + offset}px`;
+            } else {
+                key.className = 'white-key';
+                key.textContent = n.note + Math.floor(n.midi / 12 - 1);
+                whiteKeyCount++;
+            }
+
+            // События мыши
+            key.addEventListener('mousedown', () => triggerNote(n.midi));
+            key.addEventListener('mouseup', () => key.classList.remove('active'));
+            key.addEventListener('mouseleave', () => key.classList.remove('active'));
+
+            pianoEl.appendChild(key);
+        });
+
+        // --- КЛАВИАТУРА ---
+        const keyMap = {
+            'a': 48, 'w': 49, 's': 50, 'e': 51, 'd': 52, 'f': 53, 't': 54, 'g': 55, 'y': 56, 'h': 57, 'u': 58, 'j': 59,
+            'k': 60, 'o': 61, 'l': 62, 'p': 63, ';': 64, "'": 65, 'z': 66, 'x': 67, 'c': 68, 'v': 69, 'b': 70, 'n': 71, 'm': 72
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.repeat || document.activeElement.tagName === 'INPUT') return;
+            const midi = keyMap[e.key.toLowerCase()];
+            if (midi) triggerNote(midi);
+        });
+
+        document.addEventListener('keyup', (e) => {
+            const midi = keyMap[e.key.toLowerCase()];
+            if (midi) {
+                const keyEl = document.querySelector(`.white-key[data-midi="${midi}"], .black-key[data-midi="${midi}"]`);
+                if (keyEl) keyEl.classList.remove('active');
+            }
+        });
+
+        function triggerNote(midi) {
+            playSynth(midi);
+            highlightKey(midi, myColor);
+            
+            if (ws && ws.readyState === 1) {
+                ws.send(JSON.stringify({
+                    type: "noteOn", midi: midi, instrument: "piano", isSynth: true
+                }));
+            }
+        }
+
+        function highlightKey(midi, color) {
+            const keyEl = document.querySelector(`.white-key[data-midi="${midi}"], .black-key[data-midi="${midi}"]`);
+            if (keyEl) {
+                keyEl.classList.add('active');
+                // Динамически меняем цвет свечения, если играет другой игрок
+                if (color !== myColor) {
+                    keyEl.style.boxShadow = `0 0 20px ${color}, inset 0 0 10px ${color}`;
+                    keyEl.style.background = color;
+                }
+                
+                setTimeout(() => {
+                    keyEl.classList.remove('active');
+                    keyEl.style.boxShadow = '';
+                    keyEl.style.background = '';
+                }, 150);
+            }
+        }
+
+        // --- СЕТЬ ---
+        function connect() {
+            myName = document.getElementById('username').value || "Аноним";
+            const secretKey = document.getElementById('secretKey').value || null;
+            
+            ws = new WebSocket(`ws://${window.location.host}`);
+
+            ws.onopen = () => {
+                document.getElementById('modal').style.display = 'none';
+                document.getElementById('status').textContent = "ONLINE";
+                document.getElementById('status').style.color = "var(--neon-blue)";
+                
+                ws.send(JSON.stringify({
+                    type: "join", name: myName, color: myColor,
+                    room: "Lobby", secretKey: secretKey, invisible: false, isBot: false
+                }));
+            };
+
+            ws.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                switch (data.type) {
+                    case "playerList":
+                        renderPlayers(data.players);
+                        const me = data.players.find(p => p.name === myName);
+                        if (me) { myId = me.id; isOwner = me.isOwner; }
+                        break;
+                    case "notePlayed":
+                        if (data.name !== myName) {
+                            playSynth(data.midi);
+                            highlightKey(data.midi, data.color);
+                        }
+                        break;
+                    case "chatMessage":
+                        addChat(data.name, data.text, data.color);
+                        break;
+                    case "systemMessage":
+                        addChat("СИСТЕМА", data.text, "#ffaa00");
+                        break;
+                    case "roomSettingsUpdated":
+                        document.getElementById('room-name').textContent = data.settings.id;
+                        break;
+                    case "kicked": alert("Тебя выгнали!"); location.reload(); break;
+                    case "banned": alert(`Бан. Причина: ${data.reason}`); location.reload(); break;
+                    case "muted": alert(`Мут. Причина: ${data.reason}`); break;
+                }
+            };
+
+            ws.onclose = () => {
+                document.getElementById('status').textContent = "DISCONNECTED";
+                document.getElementById('status').style.color = "red";
+            };
+        }
+
+        function renderPlayers(players) {
+            const list = document.getElementById('player-list');
+            list.innerHTML = '';
+            players.forEach(p => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span style="color:${p.color}">${p.name}</span> ${p.isOwner ? '👑' : ''}`;
+                
+                if (isOwner && p.id !== myId) {
+                    li.onclick = () => adminMenu(p);
+                }
+                list.appendChild(li);
+            });
+        }
+
+        function adminMenu(target) {
+            const act = prompt(`Действие над ${target.name}:\n1. Мут (60с)\n2. Кик\n3. Бан`);
+            if (act === '1') ws.send(JSON.stringify({ type: "adminAction", action: "mute", targetId: target.id, reason: "Нарушение", duration: 60 }));
+            if (act === '2') ws.send(JSON.stringify({ type: "adminAction", action: "kick", targetId: target.id }));
+            if (act === '3') ws.send(JSON.stringify({ type: "adminAction", action: "ban", targetId: target.id, reason: "Нарушение", duration: 999999 }));
+        }
+
+        // --- ЧАТ ---
+        function handleChat(e) {
+            if (e.key === 'Enter') {
+                const input = document.getElementById('chat-input');
+                if (input.value.trim() === "") return;
+                ws.send(JSON.stringify({ type: "chatMessage", name: myName, text: input.value, color: myColor }));
+                input.value = "";
+            }
+        }
+
+        function addChat(author, text, color) {
+            const div = document.createElement('div');
+            div.className = 'msg';
+            div.innerHTML = `<span class="msg-author" style="color:${color}">${author}:</span> <span>${text}</span>`;
+            const chat = document.getElementById('chat-messages');
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+    </script>
 </body>
 </html>
