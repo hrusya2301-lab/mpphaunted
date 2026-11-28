@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>С ДНЁМ РОЖДЕНИЯ, БРО!</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #05000a;
+            font-family: 'Orbitron', sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255, 0, 234, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 10% 90%, rgba(0, 243, 255, 0.1) 0%, transparent 50%);
+        }
+
+        /* Летающие частицы */
+        .particle {
+            position: absolute;
+            background: #00f3ff;
+            border-radius: 50%;
+            pointer-events: none;
+            box-shadow: 0 0 10px #00f3ff;
+            animation: float linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+
+        /* Контейнер */
+        .container {
+            text-align: center;
+            z-index: 10;
+            background: rgba(10, 0, 20, 0.8);
+            padding: 50px 70px;
+            border: 2px solid #ff00ea;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(255, 0, 234, 0.4), inset 0 0 20px rgba(255, 0, 234, 0.1);
+            backdrop-filter: blur(10px);
+            max-width: 800px;
+            transform: scale(0.9);
+            animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            to { transform: scale(1); }
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-top: 0;
+            color: #fff;
+            text-shadow: 0 0 10px #fff, 0 0 20px #ff00ea, 0 0 40px #ff00ea;
+            letter-spacing: 3px;
+            animation: pulse 2s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { text-shadow: 0 0 10px #fff, 0 0 20px #ff00ea, 0 0 40px #ff00ea; }
+            100% { text-shadow: 0 0 15px #fff, 0 0 30px #ff00ea, 0 0 60px #ff00ea; }
+        }
+
+        p {
+            font-size: 1.2em;
+            line-height: 1.6;
+            color: #e0e0e0;
+            margin-bottom: 30px;
+        }
+
+        .highlight {
+            color: #00f3ff;
+            font-weight: bold;
+            text-shadow: 0 0 10px #00f3ff;
+        }
+
+        /* Кнопка */
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.2em;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            color: #000;
+            background: #00f3ff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 0 20px #00f3ff;
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn:hover {
+            background: #ff00ea;
+            box-shadow: 0 0 40px #ff00ea;
+            transform: scale(1.05);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Скрытый текст */
+        #secret-message {
+            margin-top: 20px;
+            font-size: 1.5em;
+            color: #ff00ea;
+            text-shadow: 0 0 15px #ff00ea;
+            display: none;
+            font-weight: 900;
+            animation: popIn 0.5s forwards;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>С ДНЁМ РОЖДЕНИЯ!</h1>
+        
+        <p>
+            Поздравляю тебя, <span class="highlight">not a stalin cat</span>! 🖤<br><br>
+            Желаю тебе крутых игр, чистой консоли без красных ошибок, и чтобы твой персонаж в Роблоксе 
+            никогда не снимал тактическую каску.<br>
+            Спасибо, что ты есть. Ты лучший друг.
+        </p>
+
+        <button class="btn" onclick="celebrate()">ВЗОРВАТЬ ТОРТ</button>
+        
+        <div id="secret-message">СЮРПРИЗ, БРО! ТЫ СТАЛ ФЕМБОЕМ "хотя ты и есть фембой.."</div>
+    </div>
+
+    <script>
+        // --- ГЕНЕРАЦИЯ ЧАСТИЦ ---
+        function createParticles() {
+            const colors = ['#00f3ff', '#ff00ea', '#9d00ff'];
+            for (let i = 0; i < 50; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const size = Math.random() * 5 + 2;
+                p.style.width = `${size}px`;
+                p.style.height = `${size}px`;
+                p.style.left = `${Math.random() * 100}vw`;
+                p.style.animationDuration = `${Math.random() * 5 + 5}s`;
+                p.style.animationDelay = `${Math.random() * 5}s`;
+                p.style.background = colors[Math.floor(Math.random() * colors.length)];
+                document.body.appendChild(p);
+            }
+        }
+        createParticles();
+
+        // --- АУДИО (Happy Birthday) ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playNote(freq, startTime, duration) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        }
+
+        function playBirthdaySong() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const now = audioCtx.currentTime;
+            // Ноты (частоты)
+            const C4 = 261.63, D4 = 293.66, E4 = 329.63, F4 = 349.23, G4 = 392.00, A4 = 440.00, B4 = 493.88, C5 = 523.25;
+            
+            // Мелодия (Happy Birthday)
+            // [Частота, Время начала (относительно now), Длительность]
+            const melody = [
+                [C4, 0, 0.3], [C4, 0.4, 0.2], [D4, 0.7, 0.5], [C4, 1.3, 0.5], [F4, 1.9, 0.5], [E4, 2.5, 1.0],
+                [C4, 3.6, 0.3], [C4, 4.0, 0.2], [D4, 4.3, 0.5], [C4, 4.9, 0.5], [G4, 5.5, 0.5], [F4, 6.1, 1.0],
+                [C4, 7.2, 0.3], [C4, 7.6, 0.2], [C5, 7.9, 0.5], [A4, 8.5, 0.5], [F4, 9.1, 0.5], [E4, 9.7, 0.5], [D4, 10.3, 1.0],
+                [B4, 11.4, 0.3], [B4, 11.8, 0.2], [A4, 12.1, 0.5], [F4, 12.7, 0.5], [G4, 13.3, 0.5], [F4, 13.9, 1.0]
+            ];
+
+            melody.forEach(note => {
+                playNote(note[0], now + note[1], note[2]);
+            });
+        }
+
+        // --- КНОПКА ---
+        function celebrate() {
+            playBirthdaySong();
+            
+            // Показываем секретное сообщение
+            const secret = document.getElementById('secret-message');
+            secret.style.display = 'block';
+            
+            // Эффект взрыва
+            for(let i=0; i<30; i++){
+                setTimeout(() => {
+                    const p = document.createElement('div');
+                    p.className = 'particle';
+                    p.style.background = '#ff00ea';
+                    p.style.width = '10px';
+                    p.style.height = '10px';
+                    p.style.left = '50vw';
+                    p.style.top = '50vh';
+                    p.style.transform = `translate(${(Math.random()-0.5)*1000}px, ${(Math.random()-0.5)*1000}px)`;
+                    p.style.animation = 'none';
+                    p.style.transition = 'all 1s ease-out';
+                    p.style.opacity = '1';
+                    document.body.appendChild(p);
+                    
+                    setTimeout(() => { p.style.opacity = '0'; }, 50);
+                    setTimeout(() => { p.remove(); }, 1000);
+                }, i * 30);
+            }
+            
+            // Меняем текст кнопки
+            document.querySelector('.btn').innerText = "ЕЩЁ РАЗ!";
+        }
+    </script>
+</body>
+</html> 
